@@ -98,7 +98,7 @@ class Network:
     def fit(self, x_train, y_train, epochs, learning_rate):
         # sample dimension first
         samples = len(x_train)
-
+        err = 0
         # training loop
         for i in range(epochs):
             err = 0
@@ -119,6 +119,7 @@ class Network:
             # calculate average error on all samples
             err /= samples
             print('epoch %d/%d   error=%f' % (i+1, epochs, err))
+        return err
 
 
 
