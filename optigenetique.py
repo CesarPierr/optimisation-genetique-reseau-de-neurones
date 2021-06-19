@@ -37,13 +37,13 @@ l_fonctions = [[tanh,tanh_prime],[atan,atan_prime]]
 class Population :
 
     def __init__(self) :
-        self.nb_layers = randint(2,10)
-        self.nb_neurones_couches = [randint(20,200) for i in range(self.nb_layers-1)]
+        self.nb_layers = randint(2,5)
+        self.nb_neurones_couches = [randint(20,100) for i in range(self.nb_layers-1)]
         self.f_acti = l_fonctions[randint(0,1)]
         self.learning_rate = [0.05 ,0.1, 0.15 ,0.2][randint(0,3)]
         self.accuracy = 1
 
-    def fitness(self,iter) : 
+    def fitness(self,iter,num,den,n_gen) : 
         net = Network()
         net.add(FCLayer(28*28, self.nb_neurones_couches[0]))
         net.add(ActivationLayer(self.f_acti[0], self.f_acti[1]))
@@ -57,9 +57,10 @@ class Population :
         net.add(ActivationLayer(self.f_acti[0], self.f_acti[1]))
         net.use(mse, mse_prime)
         t1 = time.time()
-        print(self)
+        print("generation ", n_gen,"/",10," : ",round(((num+1)/den)*100,2),"%",end= "")
         err = net.fit(x_train[0:1000], y_train[0:1000], epochs=iter, learning_rate=self.learning_rate)
         t2 = time.time()
+        print(" temps d'entrainement du reseau : ",t2-t1)
         self.accuracy = err
         return err*(t2-t1)/iter
 
@@ -68,15 +69,15 @@ class Population :
         return "\n nb layers : " + str(self.nb_layers) +"\n" + "nb neurones/couches" + str(self.nb_neurones_couches) + "\n" +"fonction : " + str(self.f_acti) + "\n" + str(self.learning_rate)
 
     def mutation(self,ngeneration) :
-        new = copy.copy(self)
+        new = self
         mut_f = randint(1,int(20/ngeneration))
         mut_layers = randint(1,10)
-        mut_learning_rate = randint(1,5)
+        mut_learning_rate = randint(1,8)
         if mut_f == 1 :
             new.f_acti = l_fonctions[randint(0,1)]
-        if mut_layers == 1 and new.nb_layers < 10 :
+        if mut_layers == 1 and new.nb_layers < 5 :
             new.nb_layers += 1
-            new.nb_neurones_couches.append(randint(20,200))
+            new.nb_neurones_couches.append(randint(20,100))
         if mut_layers == 2 and new.nb_layers > 2 :
             new.nb_layers -= 1
             new.nb_neurones_couches = new.nb_neurones_couches[:-1]
@@ -86,20 +87,20 @@ class Population :
         for i in range(len(new.nb_neurones_couches)) :
             mut_nb_neurones = randint(1,20)
             if mut_nb_neurones == 1 :
-                new.nb_neurones_couches[i] = randint(20,200)
+                new.nb_neurones_couches[i] = randint(20,100)
         return new
     
     def crossover(self,ind2) :
 
         #choose nb layers/learning rate
-        new = Population()
+        new = copy.copy(Population())
         chose_layer = randint(1,2)
         chose_learning_rate = randint(1,2)
         if chose_layer == 1 :
             new.nb_layers = self.nb_layers
-            
         else : 
             new.nb_layers = ind2.nb_layers
+
         new.nb_neurones_couches = [0 for i in range(new.nb_layers-1)]
         if chose_learning_rate == 1 :
             new.learning_rate = self.learning_rate
@@ -140,29 +141,48 @@ def crossover(pop,n) :
         ret.append(a.crossover(b))
     return ret
 
-
+def del_doublons(pop) :
+    l = len(pop)
+    doub = []
+    new = []
+    for i in pop :
+        if i.nb_neurones_couches in doub :
+            continue
+        else :
+            doub.append(i.nb_neurones_couches)
+            new.append(i)
+    miss = len(new) - l
+    complete = [Population() for i in range(miss)]
+    new += complete
+    return new
+    
 #parametres initiaux
 n_pop = 50
-n_gen = 4
+n_gen = 10
 n_lim = 20
 n_mut = 15
 n_cross = 15
 
-n_trans_init = 10
+n_trans_init = 20
 
 
 l_fit2 = []
 pop = [Population() for i in range(n_pop)]
-
+x = [1,2,3,4,5,6,7,8,9,10]
+moy_20 = []
+meilleur = []
+moy = []
 for i in range(n_gen):
-    n_trans = int(n_trans_init*(1+i*0.5))
-    mut = mutation(pop,n_mut,i+1)
-    cross = crossover(pop,n_cross)
+    n_trans = n_trans_init
 
+    mut = mutation(pop[:],n_mut,i+1)
+    cross = crossover(pop[:],n_cross)
     pop = pop + mut + cross
-    resul = [indiv.fitness(n_trans) for indiv in pop]
+    pop = del_doublons(pop)
+    taille = len(pop)
+    resul = [indiv.fitness(n_trans,j,taille,i+1) for j,indiv in enumerate(pop)]
     newpop = []
-
+    
     m = calculate_limite(resul,n_lim)
 
     l_fit2 = []
@@ -171,10 +191,20 @@ for i in range(n_gen):
         if elem < m :
             newpop.append(pop[k])
             l_fit2.append(resul[k])
+    moy_20.append(sum(l_fit2)/len(l_fit2))
+    meilleur.append(min(l_fit2))
+    moy.append(sum(resul)/len(resul))
     pop = newpop
+import matplotlib.pyplot as plt
 
 for i in range(len(pop)) : 
     print("un individu est : ", pop[i])
     print("sa fitness est : ",l_fit2[i],"\n") 
-
+plt.plot(x,moy_20,label = "moy 20 meilleurs")
+plt.legend()
+plt.plot(x,moy,label = "moyenne totale")
+plt.legend()
+plt.plot(x,meilleur,label = "meilleur resultat")
+plt.legend()
+plt.show()
     
