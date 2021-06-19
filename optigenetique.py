@@ -29,7 +29,7 @@ from random import randint
 import numpy as np
 from fonction import *
 import time
-
+import copy
 l_fonctions = [[tanh,tanh_prime],[atan,atan_prime]]
 
 
@@ -40,7 +40,7 @@ class Population :
         self.nb_layers = randint(2,10)
         self.nb_neurones_couches = [randint(20,200) for i in range(self.nb_layers-1)]
         self.f_acti = l_fonctions[randint(0,1)]
-        self.learning_rate = randint(1,500)/100
+        self.learning_rate = [0.05 ,0.1, 0.15 ,0.2][randint(0,3)]
         self.accuracy = 1
 
     def fitness(self,iter) : 
@@ -57,6 +57,7 @@ class Population :
         net.add(ActivationLayer(self.f_acti[0], self.f_acti[1]))
         net.use(mse, mse_prime)
         t1 = time.time()
+        print(self)
         err = net.fit(x_train[0:1000], y_train[0:1000], epochs=iter, learning_rate=self.learning_rate)
         t2 = time.time()
         self.accuracy = err
@@ -64,35 +65,47 @@ class Population :
 
 
     def __repr__(self) :
-        return "nb layers : " + str(self.nb_layers) +"\n" + "nb neurones/couches" + str(self.nb_neurones_couches) + "\n" +"fonction : " + str(self.f_acti)
+        return "\n nb layers : " + str(self.nb_layers) +"\n" + "nb neurones/couches" + str(self.nb_neurones_couches) + "\n" +"fonction : " + str(self.f_acti) + "\n" + str(self.learning_rate)
 
     def mutation(self,ngeneration) :
-        mut_f = randint(1,int(50/ngeneration))
-        mut_layers = randint(1,int(10*ngeneration/self.accuracy))
+        new = copy.copy(self)
+        mut_f = randint(1,int(20/ngeneration))
+        mut_layers = randint(1,10)
         mut_learning_rate = randint(1,5)
         if mut_f == 1 :
-            self.f_acti = l_fonctions[randint(0,1)]
-        if mut_layers == 1 and self.nb_layers < 10 :
-            self.nb_layers += 1
-            self.nb_neurones_couches.append(randint(20,200))
-        if mut_layers == 2 and self.nb_layers > 2 :
-            self.nb_layers -= 1
-            self.nb_neurones_couches = self.nb_neurones_couches[:-1]
-        for i in range(len(self.nb_neurones_couches)) :
-            mut_nb_neurones = randint(1,30)
+            new.f_acti = l_fonctions[randint(0,1)]
+        if mut_layers == 1 and new.nb_layers < 10 :
+            new.nb_layers += 1
+            new.nb_neurones_couches.append(randint(20,200))
+        if mut_layers == 2 and new.nb_layers > 2 :
+            new.nb_layers -= 1
+            new.nb_neurones_couches = new.nb_neurones_couches[:-1]
+        if mut_learning_rate == 1 :
+            new.learning_rate = [0.05 ,0.1, 0.15 ,0.2][randint(0,3)]
+
+        for i in range(len(new.nb_neurones_couches)) :
+            mut_nb_neurones = randint(1,20)
             if mut_nb_neurones == 1 :
-                self.nb_neurones_couches[i] = randint(20,200)
-        return self
+                new.nb_neurones_couches[i] = randint(20,200)
+        return new
     
     def crossover(self,ind2) :
-        #choose nb layers
+
+        #choose nb layers/learning rate
         new = Population()
         chose_layer = randint(1,2)
-
+        chose_learning_rate = randint(1,2)
         if chose_layer == 1 :
             new.nb_layers = self.nb_layers
+            
         else : 
             new.nb_layers = ind2.nb_layers
+        new.nb_neurones_couches = [0 for i in range(new.nb_layers-1)]
+        if chose_learning_rate == 1 :
+            new.learning_rate = self.learning_rate
+        else : 
+            new.learning_rate = ind2.learning_rate
+
         #choose the nb of neurones from the layer
         chose_neurones = [randint(0,1) for i in range(new.nb_layers-1)]
         for k,elem in enumerate(chose_neurones) :
@@ -106,26 +119,54 @@ class Population :
                     new.nb_neurones_couches[k] = ind2.nb_neurones_couches[k]
                 except :
                     new.nb_neurones_couches[k] = self.nb_neurones_couches[k]
+        return new
 
-
-def calculate_median(l):
+def calculate_limite(l,n):
     l = sorted(l)
-    l_len = len(l)
-    ind = l_len//2
-    return l[ind]
+    return l[n]
 
+def mutation(pop,n,gen) :
+    ret = []
+    for i in range(n) :
+        a = pop[randint(0,len(pop)-1)]
+        ret.append(a.mutation(gen))
+    return ret
+
+def crossover(pop,n) :
+    ret = []
+    for i in range(n) :
+        a = pop[randint(0,len(pop)-1)]
+        b = pop[randint(0,len(pop)-1)]
+        ret.append(a.crossover(b))
+    return ret
+
+
+#parametres initiaux
 n_pop = 50
 n_gen = 4
+n_lim = 20
+n_mut = 15
+n_cross = 15
+
 n_trans_init = 10
+
+
 l_fit2 = []
 pop = [Population() for i in range(n_pop)]
+
 for i in range(n_gen):
     n_trans = int(n_trans_init*(1+i*0.5))
-    pop = [ind.mutation(i+1) for ind in pop]
+    mut = mutation(pop,n_mut,i+1)
+    cross = crossover(pop,n_cross)
+
+    pop = pop + mut + cross
     resul = [indiv.fitness(n_trans) for indiv in pop]
     newpop = []
-    m = calculate_median(resul)
+
+    m = calculate_limite(resul,n_lim)
+
     l_fit2 = []
+
     for k,elem in enumerate(resul) :
         if elem < m :
             newpop.append(pop[k])
