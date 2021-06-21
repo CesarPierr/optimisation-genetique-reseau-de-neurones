@@ -157,11 +157,11 @@ def del_doublons(pop) :
     return new
     
 #parametres initiaux
-n_pop = 50
+n_pop = 15
 n_gen = 10
-n_lim = 20
-n_mut = 15
-n_cross = 15
+n_lim = 5
+n_mut = 5
+n_cross = 5
 
 n_trans_init = 20
 
