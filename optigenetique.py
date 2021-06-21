@@ -62,7 +62,7 @@ class Population :
         t2 = time.time()
         print(" temps d'entrainement du reseau : ",round(t2-t1,2))
         self.accuracy = err
-        return err*self.nb_layers*sum(self.nb_neurones_couches)
+        return err*sum(self.nb_neurones_couches)
 
 
     def __repr__(self) :
@@ -157,18 +157,18 @@ def del_doublons(pop) :
     return new
     
 #parametres initiaux
-n_pop = 5
-n_gen = 5
-n_lim = 5
-n_mut = 5
-n_cross = 5
+n_pop = 20
+n_gen = 10
+n_lim = 20
+n_mut = 15
+n_cross = 15
 
 n_trans_init = 20
 
 
 l_fit2 = []
 pop = [Population() for i in range(n_pop)]
-x = [1,2,3,4,5]
+x = [1,2,3,4,5,6,7,8,9,10]
 moy_20 = []
 meilleur = []
 moy = []
