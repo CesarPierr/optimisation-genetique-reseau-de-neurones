@@ -62,7 +62,7 @@ class Population :
         t2 = time.time()
         print(" temps d'entrainement du reseau : ",round(t2-t1,2))
         self.accuracy = err
-        return err*sum(self.nb_neurones_couches)
+        return err*(sum(self.nb_neurones_couches)- 88*88 - 10)
 
 
     def __repr__(self) :
